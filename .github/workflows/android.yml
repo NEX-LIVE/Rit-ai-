@@ -1,4 +1,4 @@
-name: Android APK Build
+name: Rit AI - Android APK Build
 
 on:
   workflow_dispatch:
@@ -11,16 +11,16 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build Rit AI APK
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Download Repository
+      # 1. Checkout Repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Install Java
-      - name: Set up JDK 17
+      # 2. Setup Java 17
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -30,25 +30,36 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4.0.4
 
-      # 4. Check Android SDK
-      - name: Check Android SDK
+      # 4. Install Android 36.1 SDK
+      - name: Install Android SDK Packages
         run: |
-          java -version
-          sdkmanager --version
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-36.1"
 
-      # 5. Give Gradle Permission
-      - name: Grant Gradle Permission
-        run: chmod +x gradlew
+      # 5. Accept SDK Licenses
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses
 
-      # 6. Build APK
+      # 6. Install Gradle 9.3.1
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      # 7. Check Gradle
+      - name: Check Gradle Version
+        run: gradle --version
+
+      # 8. Build Debug APK
       - name: Build Debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: gradle --no-daemon assembleDebug
 
-      # 7. Upload APK
+      # 9. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Android-APK
+          name: Rit-AI-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 7
