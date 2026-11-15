@@ -1,0 +1,6 @@
+{
+  "name": "RIT AI",
+  "description": "Personal voice-first AI companion with Gemini native female voices, long-term persistent memory, and full voice conversation history.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

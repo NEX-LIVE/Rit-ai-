@@ -1,0 +1,171 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidLanguage(lang) {
+      return lang in ['Hinglish', 'Hindi', 'English'];
+    }
+
+    function isValidMemoryCategory(cat) {
+      return cat in ['IDENTITY', 'PREFERENCE', 'LIKE_DISLIKE', 'FACT', 'DATE_EVENT', 'PROJECT', 'INSTRUCTION'];
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.displayName is string && data.displayName.size() <= 120 &&
+             (!('email' in data) || data.email == null || (data.email is string && data.email.size() <= 200)) &&
+             data.selectedVoiceName is string && data.selectedVoiceName.size() >= 1 && data.selectedVoiceName.size() <= 40 &&
+             isValidLanguage(data.selectedLanguage) &&
+             data.cloudBackupEnabled is bool &&
+             data.allowAutoMemoryExtraction is bool &&
+             data.askBeforeSensitiveMemory is bool;
+    }
+
+    function isValidMemory(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             isValidMemoryCategory(data.category) &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 2000 &&
+             data.importance is int && data.importance >= 1 && data.importance <= 5 &&
+             data.isSensitive is bool &&
+             data.userConfirmed is bool &&
+             (!('sourceConversationId' in data) || data.sourceConversationId == null || (data.sourceConversationId is string && data.sourceConversationId.size() <= 128)) &&
+             data.localCreatedAtMs is int && data.localCreatedAtMs >= 0 &&
+             data.localUpdatedAtMs is int && data.localUpdatedAtMs >= 0;
+    }
+
+    function isValidConversation(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.startedAtMs is int && data.startedAtMs >= 0 &&
+             (!('endedAtMs' in data) || data.endedAtMs == null || (data.endedAtMs is int && data.endedAtMs >= 0)) &&
+             isValidLanguage(data.language) &&
+             data.voiceName is string && data.voiceName.size() >= 1 && data.voiceName.size() <= 40 &&
+             data.messageCount is int && data.messageCount >= 0 &&
+             (!('summaryText' in data) || data.summaryText == null || (data.summaryText is string && data.summaryText.size() <= 4000)) &&
+             (!('keyTopics' in data) || data.keyTopics == null || (data.keyTopics is string && data.keyTopics.size() <= 500)) &&
+             (!('moodTag' in data) || data.moodTag == null || (data.moodTag is string && data.moodTag.size() <= 60));
+    }
+
+    function isValidMessage(data, userId, conversationId) {
+      return data.userId is string && data.userId == userId &&
+             data.conversationId is string && data.conversationId == conversationId &&
+             data.role in ['USER', 'RIT'] &&
+             data.transcript is string && data.transcript.size() >= 1 && data.transcript.size() <= 8000 &&
+             data.timestampMs is int && data.timestampMs >= 0 &&
+             data.durationMs is int && data.durationMs >= 0;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'selectedVoiceName', 'selectedLanguage', 'cloudBackupEnabled', 'allowAutoMemoryExtraction', 'askBeforeSensitiveMemory', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'selectedVoiceName', 'selectedLanguage', 'cloudBackupEnabled', 'allowAutoMemoryExtraction', 'askBeforeSensitiveMemory', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'selectedVoiceName', 'selectedLanguage', 'cloudBackupEnabled', 'allowAutoMemoryExtraction', 'askBeforeSensitiveMemory', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId) && isValidId(memoryId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(memoryId) &&
+                         incoming().keys().hasAll(['userId', 'category', 'content', 'importance', 'isSensitive', 'userConfirmed', 'localCreatedAtMs', 'localUpdatedAtMs', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'category', 'content', 'importance', 'isSensitive', 'userConfirmed', 'sourceConversationId', 'localCreatedAtMs', 'localUpdatedAtMs', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidMemory(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(memoryId) &&
+                         isValidMemory(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['category', 'content', 'importance', 'isSensitive', 'userConfirmed', 'sourceConversationId', 'localUpdatedAtMs', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(memoryId);
+      }
+
+      match /conversations/{conversationId} {
+        allow get: if isOwner(userId) && isValidId(conversationId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(conversationId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'startedAtMs', 'language', 'voiceName', 'messageCount', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'startedAtMs', 'endedAtMs', 'language', 'voiceName', 'messageCount', 'summaryText', 'keyTopics', 'moodTag', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidConversation(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(conversationId) &&
+                         isValidConversation(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'endedAtMs', 'language', 'voiceName', 'messageCount', 'summaryText', 'keyTopics', 'moodTag', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(conversationId);
+
+        match /messages/{messageId} {
+          allow get: if isOwner(userId) && isValidId(conversationId) && isValidId(messageId);
+          allow list: if isOwner(userId) && isValidId(conversationId);
+
+          allow create: if isOwner(userId) &&
+                           isValidId(conversationId) &&
+                           isValidId(messageId) &&
+                           incoming().keys().hasAll(['userId', 'conversationId', 'role', 'transcript', 'timestampMs', 'durationMs', 'createdAt']) &&
+                           incoming().keys().hasOnly(['userId', 'conversationId', 'role', 'transcript', 'timestampMs', 'durationMs', 'createdAt']) &&
+                           incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                           isValidMessage(incoming(), userId, conversationId) &&
+                           (exists(/databases/$(database)/documents/users/$(userId)/conversations/$(conversationId)) ||
+                            existsAfter(/databases/$(database)/documents/users/$(userId)/conversations/$(conversationId)));
+
+          allow update: if false;
+          allow delete: if isOwner(userId) && isValidId(conversationId) && isValidId(messageId);
+        }
+      }
+    }
+  }
+}

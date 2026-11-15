@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and synced RIT AI voice/memory settings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "email": { "type": "string", "description": "User email (private PII)" },
+        "selectedVoiceName": { "type": "string", "description": "Selected Gemini female voice ID" },
+        "selectedLanguage": { "type": "string", "enum": ["Hinglish", "Hindi", "English"] },
+        "cloudBackupEnabled": { "type": "boolean" },
+        "allowAutoMemoryExtraction": { "type": "boolean" },
+        "askBeforeSensitiveMemory": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "displayName", "selectedVoiceName", "selectedLanguage", "cloudBackupEnabled", "allowAutoMemoryExtraction", "askBeforeSensitiveMemory", "createdAt", "updatedAt"]
+    },
+    "CloudMemory": {
+      "title": "CloudMemory",
+      "description": "Synced long-term memory entry in Rit's Brain",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "category": { "type": "string", "enum": ["IDENTITY", "PREFERENCE", "LIKE_DISLIKE", "FACT", "DATE_EVENT", "PROJECT", "INSTRUCTION"] },
+        "content": { "type": "string" },
+        "importance": { "type": "integer" },
+        "isSensitive": { "type": "boolean" },
+        "userConfirmed": { "type": "boolean" },
+        "sourceConversationId": { "type": "string" },
+        "localCreatedAtMs": { "type": "integer" },
+        "localUpdatedAtMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "content", "importance", "isSensitive", "userConfirmed", "localCreatedAtMs", "localUpdatedAtMs", "createdAt", "updatedAt"]
+    },
+    "CloudConversation": {
+      "title": "CloudConversation",
+      "description": "Synced voice conversation metadata and summary",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "startedAtMs": { "type": "integer" },
+        "endedAtMs": { "type": "integer" },
+        "language": { "type": "string", "enum": ["Hinglish", "Hindi", "English"] },
+        "voiceName": { "type": "string" },
+        "messageCount": { "type": "integer" },
+        "summaryText": { "type": "string" },
+        "keyTopics": { "type": "string" },
+        "moodTag": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "startedAtMs", "language", "voiceName", "messageCount", "createdAt", "updatedAt"]
+    },
+    "CloudMessage": {
+      "title": "CloudMessage",
+      "description": "Synced voice transcript turn inside a conversation",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "role": { "type": "string", "enum": ["USER", "RIT"] },
+        "transcript": { "type": "string" },
+        "timestampMs": { "type": "integer" },
+        "durationMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "conversationId", "role", "transcript", "timestampMs", "durationMs", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile and synced settings"
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/CloudMemory" },
+      "description": "Long-term memories owned by the user"
+    },
+    "/users/{userId}/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/CloudConversation" },
+      "description": "Voice conversation sessions and summaries owned by the user"
+    },
+    "/users/{userId}/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/CloudMessage" },
+      "description": "Voice turn transcripts owned by the user"
+    }
+  }
+}

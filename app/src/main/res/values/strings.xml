@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">RIT AI</string>
+    <string name="rit_tagline">Personal Voice Companion</string>
+    <string name="status_idle">Tap the call orb to talk with Rit</string>
+    <string name="status_connecting">Connecting to Rit\'s voice...</string>
+    <string name="status_listening">Listening to you...</string>
+    <string name="status_thinking">Rit is thinking...</string>
+    <string name="status_speaking">Rit is speaking • Speak anytime to interrupt</string>
+    <string name="status_disconnected">Connection paused • Tap call to reconnect</string>
+    <string name="status_muted">Microphone muted • Tap unmute to speak</string>
+    <string name="mic_active_disclosure">Mic Active • Live Voice Processing</string>
+    <string name="mic_permission_title">Microphone Access Required</string>
+    <string name="mic_permission_body">Rit communicates exclusively through real-time voice. Grant microphone access to start talking with Rit. Audio is never recorded secretly.</string>
+    <string name="grant_mic_permission">Allow Microphone</string>
+    <string name="cd_voice_orb">Animated Rit AI voice orb</string>
+    <string name="cd_start_call">Start voice call with Rit</string>
+    <string name="cd_end_call">End voice call</string>
+    <string name="cd_mute_mic">Toggle microphone mute</string>
+    <string name="cd_history">Open voice chat history</string>
+    <string name="cd_brain">Open Rit\'s memory brain</string>
+    <string name="cd_settings">Open settings</string>
+    <string name="cd_back">Navigate back</string>
+    <string name="title_history">Voice History</string>
+    <string name="title_brain">Rit\'s Brain</string>
+    <string name="title_voices">Gemini Female Voices</string>
+    <string name="title_settings">Settings</string>
+    <string name="continue_conversation">Continue Voice Chat</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_out_google">Sign out</string>
+</resources>
